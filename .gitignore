@@ -1,0 +1,4 @@
+generate-authors.sh
+__pycache__
+.console.py.swp
+.test_console.py.swp
