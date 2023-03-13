@@ -1,152 +1,256 @@
 #!/usr/bin/python3
-"""This is the console module"""
+"""Define the hbnb console."""
 
-import re
 import cmd
 import sys
+import re
 import json
-import models
-from datetime import datetime
-from models.base_model import BaseModel
-from models.engine.file_storage import FileStorage
 from models import storage
+from models.engine.file_storage import FileStorage
+from models.base_model import BaseModel
 from models.user import User
+from models.state import State
+from models.city import City
+from models.place import Place
 from models.amenity import Amenity
 from models.review import Review
-from models.state import State
-from models.place import Place
-from models.base_model import BaseModel
-from models.city import City
 
 
 class HBNBCommand(cmd.Cmd):
-    """
-    The class HBNBCommand
-    This is the entry point to the command interpreter
-    """
+    """Console class."""
 
-    prompt = "(hbnb) "
+    prompt = ' (hbnb) '
 
-    def do_quit(self, line):
-        """Quit command to exit the program"""
-        return True
-
-    def do_EOF(self, line):
-        """Quit command to exit the program at end of file"""
-        print()
+    def do_quit(self, arg):
+        """Quit command to exit the program."""
         return True
 
     def emptyline(self):
-        """Ignore empty line"""
+        """EmptyLine."""
         pass
 
+    def do_EOF(self, arg):
+        """End of file."""
+        return True
+
     def do_create(self, line):
-        """
-        Creates a new instance of BaseModel, saves it
-        (to the JSON file) and prints the id.
-        """
-        if line == "":
-            print("** class name is missing **")
-        elif line != "BaseModel":
-            print("** class does not exist **")
+        """Create: Creates new instance of BaseModel."""
+        slash = line.split()
+        classes = ["User", "State", "City", "Place",
+                   "Amenity", "Review", "BaseModel"]
+
+        if not slash:
+            print("** class name missing **")
         else:
-            new_model = BaseModel()
-            new_model.save()
-            print("{}".format(new_model.id))
+            if slash[0] in classes:
+                new_model = eval(slash[0] + "()")
+                new_model.save()
+                print(new_model.id)
+            else:
+                print("** class doesn't exist **")
 
     def do_show(self, line):
-        """
-        Prints the string representation of an instance
-        based on the class name and id
-        """
-        if line == "" or line is None:
+        """Gives string representation of an instance."""
+        found = 0
+        dics = (storage.all())
+        slash = line.split()
+        classes = ["User", "State", "City", "Place",
+                   "Amenity", "Review", "BaseModel"]
+
+        if not slash:
             print("** class name missing **")
         else:
-            _input = line.split(' ')
-            if _input[0] not in class_check:
+            if slash[0] in classes:
+                found = 1
+
+            if found == 0:
                 print("** class doesn't exist **")
-            elif len(_input) < 2:
-                print("** instance id missing **")
             else:
-                key = "{}.{}".format(_input[0], _input[1])
-                if key not in storage.all():
-                    print("** no instance found **")
-                else:
-                    print(storage.all()[key])
+                if len(slash) == 1:
+                    print("** instance id missing **")
+                elif len(slash) > 1:
+                    found = 0
+                    for key in dics:
+                        for sub_key in dics[key]:
+                            if sub_key == "id":
+                                if dics[key][sub_key] == slash[1]:
+                                    found = 1
+                    if found == 0:
+                        print("** no instance found **")
+                    else:
+                        key = slash[0] + "." + slash[1]
+                        if key in dics:
+                            dic_model = (dics[key])
+                            model = eval(slash[0]+"(**dic_model)")
+                            print(model)
 
     def do_destroy(self, line):
-        """
-        Deletes an instance based on the class name and id
-        (save the change into the JSON file)
-        """
-        if line == "" or line is None:
+        """Deletes an instance based on the class name and id."""
+        found = 0
+        dics = (storage.all())
+        slash = line.split()
+        classes = ["User", "State", "City", "Place",
+                   "Amenity", "Review", "BaseModel"]
+
+        if not slash:
             print("** class name missing **")
         else:
-            _input = line.split(' ')
-            if _input[0] not in class_check:
-                print("** class doesn't exist **")
-            elif len(_input) < 2:
-                print("** instance id missing **")
-            else:
-                key = "{}.{}".format(_input[0], _input[1])
-                if key not in storage.all():
-                    print("** no instance found **")
-                else:
-                    del storage.all()[key]
-                    storage.save()
+            if slash[0] in classes:
+                found = 1
 
-    def do_all(self, name):
-        """
-        Prints all string representation of all instances
-        bases on a class name
-        """
-        if name != "":
-            inputt = name.split(' ')
-            if inputt[0] not in class_check:
+            if found == 0:
                 print("** class doesn't exist **")
             else:
-                list_str = [str(obj) for key, obj in storage.all().items()
-                            if type(obj).__name__ == inputt[0]]
-                print(list_str)
-        else:
-            list_str = [str(obj) for key, obj in storage.all().items()]
-            print(list_str)
+                if len(slash) == 1:
+                    print("** instance id missing **")
+                elif len(slash) > 1:
+                    found = 0
+                    for key in dics:
+                        for sub_key in dics[key]:
+                            if sub_key == "id":
+                                if dics[key][sub_key] == slash[1]:
+                                    found = 1
+                    if found == 0:
+                        print("** no instance found **")
+                    else:
+                        key = slash[0] + "." + slash[1]
+                        if key in dics:
+                            dics.pop(key, None)
+                            with open(FileStorage._FileStorage__file_path,
+                                      mode="w", encoding='utf-8') as file:
+                                json.dump(dics, file)
+
+    def do_all(self, line):
+        """Prints all string representation of all instances."""
+        found = 0
+        dics = (storage.all())
+        slash = line.split()
+        new_list = []
+        classes = ["User", "State", "City", "Place",
+                   "Amenity", "Review", "BaseModel"]
+
+        if len(slash) > 0:
+            if slash[0] in classes:
+                found = 1
+
+        if len(slash) == 0:
+            for key in dics:
+                dic_model = (dics[key])
+                model = eval(key.split(".")[0]+"(**dic_model)")
+                new_list.append(model.__str__())
+            print(new_list)
+
+        elif found == 1:
+            for key in dics:
+                dic_model = (dics[key])
+                if key.split(".")[0] == slash[0]:
+                    model = eval(slash[0]+"(**dic_model)")
+                    new_list.append(model.__str__())
+            print(new_list)
+
+        elif found == 0 and len(slash) > 0:
+            print("** class doesn't exist **")
 
     def do_update(self, line):
-        """
-        Updates an instance based on the class name and id
-        by adding or updating attribute(save the change into the JSON file)
-        """
-        objs = models.storage.all()
-        inpu = line.split()
-        if line == "" or line is None:
+        """Updates an instance based on the class name and id\n"""
+        found = 0
+        dics = (storage.all())
+        slash = line.split()
+        classes = ["User", "State", "City", "Place",
+                   "Amenity", "Review", "BaseModel"]
+        dic_classes = {"User": User, "State": State,
+                       "City": City, "Place": Place,
+                       "Amenity": Amenity, "Review": Review,
+                       "BaseModel": BaseModel}
+
+        if not slash:
             print("** class name missing **")
-        elif inpu[0] in class_check:
-            if len(inpu) < 2:
-                print("** instance id missing **")
-            elif len(inpu) < 3:
-                print("** attribute name missing **")
-            elif len(inpu) < 4:
-                print("** value missing **")
-            else:
-                key = "{}.{}".format(inpu[0], inpu[1])
-                if key in objs:
-                    if type(inpu[3]) is dict:
-                        objs[key].setattr(inpu[2], inpu[3])
-                    objs[key].__setattr__(inpu[2], inpu[3])
-                    objs[key].save()
-                    models.storage.reload()
-                else:
-                    print("** no instance found **")
         else:
-            print("** class doesn't exist **")
+            if slash[0] in classes:
+                found = 1
+
+            if found == 0:
+                print("** class doesn't exist **")
+            else:
+                if len(slash) == 1:
+                    print("** instance id missing **")
+                elif len(slash) > 1:
+                    found = 0
+                    for key in dics:
+                        for sub_key in dics[key]:
+                            if sub_key == "id":
+                                if dics[key][sub_key] == slash[1]:
+                                    found = 1
+                    if found == 0:
+                        print("** no instance found **")
+                    else:
+                        if len(slash) == 2:
+                            print("** attribute name missing **")
+                        elif len(slash) == 3:
+                            print("** value missing **")
+                        else:
+                            key = slash[0] + "." + slash[1]
+                            dic_model = dics[key]
+                            dics.pop(key, None)
+                            modelo = eval(slash[0]+"(**dic_model)")
+                            value = slash[3]
+                            if value[0] == "\"" and value[-1] == "\"":
+                                value = value[1:-1]
+                            if getattr(modelo, slash[2], "nohay") != "nohay":
+                                if type(getattr(modelo, slash[2])) == int:
+                                    value = int(value)
+                                elif type(getattr(modelo, slash[2])) == float:
+                                    value = float(value)
+                            setattr(dic_classes[slash[0]], slash[2], value)
+                            modelo.save()
+
+    def do_count(self, line):
+        """count number of instances\n"""
+        found = 0
+        cont = 0
+        dics = (storage.all())
+        slash = line.split()
+        classes = ["User", "State", "City", "Place",
+                   "Amenity", "Review", "BaseModel"]
+
+        if not slash:
+            print("** class name missing **")
+        else:
+            if slash[0] in classes:
+                found = 1
+
+            if found == 0:
+                print("** class doesn't exist **")
+            else:
+                for key in dics:
+                    for sub_key in dics[key]:
+                        if dics[key][sub_key] == slash[0]:
+                            cont += 1
+                print(cont)
+
+    def default(self, line):
+        """Method to use the "User.method" way\n"""
+        cmds = {"create": self.do_create, "show": self.do_show,
+                "all": self.do_all, "destroy": self.do_destroy,
+                "update": self.do_update, "count": self.do_count}
+        slash = line.split(".", 1)
+        modelo = slash[0]
+        semi_cmd = slash[1].split("(", 1)
+        cmd = semi_cmd[0]
+        args = semi_cmd[1].split(", ")
+
+        if cmd in cmds:
+            if len(args) >= 3:
+                linea = modelo + " " + args[0][1:-1]\
+                    + " " + args[1][1:-1] + " " + args[2][0:-1]
+            elif len(args) == 2:
+                linea = modelo + " " + args[0][1:-1] + " " + args[1][1:-1]
+            elif len(args) == 1:
+                linea = modelo + " " + args[0][1:-2]
+            cmds[cmd](linea)
+        else:
+            print("*** Unknown syntax:", line)
 
 
 if __name__ == '__main__':
-    class_check = {"Amenity", "BaseModel", "City" "Place", "Review",
-                   "State", "User"}
     HBNBCommand().cmdloop()
-<<<<<<< HEAD
-=======
-    
->>>>>>> 3bfd6872242ceade76d13dcaea96e1bc03b825cf
